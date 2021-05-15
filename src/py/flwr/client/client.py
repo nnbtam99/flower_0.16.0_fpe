@@ -19,6 +19,7 @@ from abc import ABC, abstractmethod
 
 from flwr.common import EvaluateIns, EvaluateRes, FitIns, FitRes, ParametersRes
 
+from typing import Tuple
 
 class Client(ABC):
     """Abstract base class for Flower clients."""
