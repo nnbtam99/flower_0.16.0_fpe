@@ -280,14 +280,20 @@ class Server:
             # COMPUTE DELTA METRICS = after - before = personalized - baseline
             delta_loss = personalized_res.loss - baseline_res.loss
             delta_num_examples = personalized_res.num_examples
-            delta_metrics = {
-                k: personalized_res.metrics.get(k, 0) - baseline_res.metrics.get(k, 0) for k in baseline_res.metrics.keys()
-            }
+            delta_metrics_dict = {}
+
+            for k in baseline_res.metrics.keys():
+                baseline_val = baseline_res.metrics.get(k, 0)
+                personalized_val = personalized_res.metrics.get(k, 0)
+
+                if isinstance(baseline_val, float) and isinstance(personalized_val, float):
+                    delta_metrics_dict[k] = personalized_val - baseline_val
+
             delta_metrics.append((client_proxy, EvaluateRes(
                 loss=delta_loss,
                 num_examples=delta_num_examples,
                 accuracy=0.0, # Deprecated
-                metrics=delta_metrics
+                metrics=delta_metrics_dict
             )))
             
             log(
@@ -295,7 +301,7 @@ class Server:
                 "FPE_round: delta loss: %s\n num_examples: %s",
                 delta_loss,
                 delta_num_examples,
-                # delta_metrics # later
+                # delta_metrics_dict # later
             )
 
         # PLOT HISTOGRAM - IMPLEMENT LATER
