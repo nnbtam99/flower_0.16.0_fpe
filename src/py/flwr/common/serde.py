@@ -240,33 +240,39 @@ def fpe_res_to_proto(res: Tuple[typing.EvaluateRes, typing.EvaluateRes]) -> Clie
 
     # Legacy case, will be removed in a future release
     if baseline.accuracy is not None:
-        baseline_fpe_res_proto = ClientMessage.FederatedPersonalizedEvaluateRes(
+        baseline_fpe_res_proto = ClientMessage.EvaluateRes(
             loss=baseline.loss,
             num_examples=baseline.num_examples,
             accuracy=baseline.accuracy,  # Deprecated
             metrics=baseline_metrics_msg,
         )
-        personalized_fpe_res_proto = ClientMessage.FederatedPersonalizedEvaluateRes(
+        personalized_fpe_res_proto = ClientMessage.EvaluateRes(
             loss=personalized.loss,
             num_examples=personalized.num_examples,
             accuracy=personalized.accuracy,  # Deprecated
             metrics=personalized_metrics_msg,
         )
-        return baseline_fpe_res_proto, personalized_fpe_res_proto
+        return ClientMessage.FederatedPersonalizedEvaluateRes(
+            baseline=baseline_fpe_res_proto,
+            personalized=personalized_fpe_res_proto
+        ) 
 
     # Forward-compatible case
 
-    baseline_fpe_res_proto = ClientMessage.FederatedPersonalizedEvaluateRes(
+    baseline_fpe_res_proto = ClientMessage.EvaluateRes(
             loss=baseline.loss,
             num_examples=baseline.num_examples,
             metrics=baseline_metrics_msg,
         )
-    personalized_fpe_res_proto = ClientMessage.FederatedPersonalizedEvaluateRes(
+    personalized_fpe_res_proto = ClientMessage.EvaluateRes(
             loss=personalized.loss,
             num_examples=personalized.num_examples,
             metrics=personalized_metrics_msg,
         )
-    return baseline_fpe_res_proto, personalized_fpe_res_proto
+    return ClientMessage.FederatedPersonalizedEvaluateRes(
+            baseline=baseline_fpe_res_proto,
+            personalized=personalized_fpe_res_proto
+        ) 
 
 def fpe_res_from_proto(msg: ClientMessage.FederatedPersonalizedEvaluateRes) -> Tuple[typing.EvaluateRes, typing.EvaluateRes]:
     """Deserialize flower.EvaluateRes from ProtoBuf message."""
