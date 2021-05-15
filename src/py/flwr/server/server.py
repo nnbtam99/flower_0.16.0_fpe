@@ -289,13 +289,14 @@ class Server:
                 accuracy=0.0, # Deprecated
                 metrics=delta_metrics
             )))
-        log(
-            DEBUG,
-            "FPE_round: delta loss: %s\n num_examples: %s",
-            delta_loss,
-            delta_num_examples,
-            # delta_metrics # later
-        )
+            
+            log(
+                DEBUG,
+                "FPE_round: delta loss: %s\n num_examples: %s",
+                delta_loss,
+                delta_num_examples,
+                # delta_metrics # later
+            )
 
         # PLOT HISTOGRAM - IMPLEMENT LATER
 
