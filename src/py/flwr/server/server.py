@@ -87,7 +87,7 @@ EvaluateResultsAndFailures = Tuple[
 
 # FPE 
 FPEResultsAndFailures = Tuple[
-    List[Tuple[ClientProxy, Tuple[EvaluateRes, EvaluateRes]], List[BaseException]]
+    List[Tuple[ClientProxy, EvaluateRes, EvaluateRes]], List[BaseException]
 ]
 
 ReconnectResultsAndFailures = Tuple[
@@ -274,8 +274,7 @@ class Server:
 
         # Extract [(client_proxy, personalized_info)] from FPE results for aggregation
         personalized_results: List[Tuple[ClientProxy, EvaluateRes]] = []
-        for client_proxy, baseline_personalized in results:
-            baseline_res, personalized_res = baseline_personalized
+        for client_proxy, baseline_res, personalized_res in results:
             personalized_results.append(tuple(client_proxy, personalized_res))
 
             # COMPUTE DELTA METRICS = after - before = personalized - baseline
@@ -494,7 +493,7 @@ def federated_personalized_evaluate_clients(
         concurrent.futures.wait(futures)
     
     # Gather results
-    results: List[Tuple[ClientProxy, Tuple[EvaluateRes, EvaluateRes]]] = []
+    results: List[Tuple[ClientProxy, EvaluateRes, EvaluateRes]] = []
     failures: List[BaseException] = []
     for future in futures:
         failure = future.exception()
@@ -512,4 +511,4 @@ def federated_personalized_evaluate_client(
 ) -> Tuple[ClientProxy, Tuple[EvaluateRes, EvaluateRes]]:
     """FPE parameters on a single client."""
     baseline_res, personalized_res = client.federated_personalized_evaluate(ins)
-    return client, (baseline_res, personalized_res)
+    return client, baseline_res, personalized_res
