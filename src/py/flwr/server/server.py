@@ -275,7 +275,7 @@ class Server:
         # Extract [(client_proxy, personalized_info)] from FPE results for aggregation
         personalized_results: List[Tuple[ClientProxy, EvaluateRes]] = []
         for client_proxy, baseline_res, personalized_res in results:
-            personalized_results.append(tuple(client_proxy, personalized_res))
+            personalized_results.append((client_proxy, personalized_res))
 
             # COMPUTE DELTA METRICS = after - before = personalized - baseline
             delta_loss = personalized_res.loss - baseline.loss
@@ -283,7 +283,7 @@ class Server:
             delta_metrics = {
                 k: personalized_res.metrics.get(k, 0) - baseline_res.metrics.get(k, 0) for k in baseline_res.metrics.keys()
             }
-            delta_metrics.append(tuple(client_proxy, EvaluateRes(
+            delta_metrics.append((client_proxy, EvaluateRes(
                 loss=delta_loss,
                 num_examples=delta_num_examples,
                 accuracy=0.0, # Deprecated
