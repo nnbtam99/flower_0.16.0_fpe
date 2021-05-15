@@ -234,7 +234,7 @@ def fpe_ins_from_proto(msg: ServerMessage.FederatedPersonalizedEvaluateIns) -> t
 
 def fpe_res_to_proto(res: Tuple[typing.EvaluateRes, typing.EvaluateRes]) -> ClientMessage.FederatedPersonalizedEvaluateRes:
     """Serialize flower.EvaluateRes to ProtoBuf message."""
-    baseline, personalize = res[0], res[1]
+    baseline, personalized = res[0], res[1]
     baseline_metrics_msg = None if baseline.metrics is None else metrics_to_proto(baseline.metrics)
     personalized_metrics_msg = None if personalized.metrics is None else metrics_to_proto(personalized.metrics)
 
