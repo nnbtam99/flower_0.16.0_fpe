@@ -278,7 +278,7 @@ class Server:
             personalized_results.append((client_proxy, personalized_res))
 
             # COMPUTE DELTA METRICS = after - before = personalized - baseline
-            delta_loss = personalized_res.loss - baseline.loss
+            delta_loss = personalized_res.loss - baseline_res.loss
             delta_num_examples = personalized_res.num_examples
             delta_metrics = {
                 k: personalized_res.metrics.get(k, 0) - baseline_res.metrics.get(k, 0) for k in baseline_res.metrics.keys()
