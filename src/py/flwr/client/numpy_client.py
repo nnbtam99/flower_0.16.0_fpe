@@ -162,9 +162,9 @@ class NumPyClient(ABC):
         parameters: List[np.ndarray],
         config: Dict[str, Scalar],
     ) -> Tuple[Tuple[float, int, Dict[str, Scalar]], Tuple[float, int, Dict[str, Scalar]]]:
-    """
+        """
         Returns: Tuple[EvalRes, EvalRes] = (baseline, personalized)
-    """
+        """
 
 
 class NumPyClientWrapper(Client):
