@@ -394,6 +394,7 @@ class PersonalizedServer(Server):
         num_examples_y_axis = [delta_metric.num_examples for client_proxy, delta_metric in delta_metrics]
 
         plt.hist(losses_x_axis)
+        plt.ylim((0, max(num_examples_y_axis)))
         plt.xlabel('Delta-loss')
         plt.ylabel('Number of samples')
 
