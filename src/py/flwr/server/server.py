@@ -404,7 +404,7 @@ class PersonalizedServer(Server):
         client_manager: ClientManager, 
         strategy: Optional[Strategy] = None,
     ) -> None:
-        super().__init__()
+        super().__init__(client_manager, strategy)
 
     def evaluate_round(
         self, rnd: int
