@@ -383,7 +383,7 @@ class PersonalizedServer(Server):
                 "FPE_round: delta loss: %s\n num_examples: %s",
                 delta_loss,
                 delta_num_examples,
-                delta_metrics_dict 
+                # delta_metrics_dict 
             )
 
         # PLOT HISTOGRAM - IMPLEMENT LATER
