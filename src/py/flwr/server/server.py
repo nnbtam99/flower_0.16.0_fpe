@@ -38,6 +38,9 @@ from flwr.server.client_proxy import ClientProxy
 from flwr.server.history import History
 from flwr.server.strategy import FedAvg, Strategy
 
+# Refactor later
+from matplotlib import pyplot as plt
+
 DEPRECATION_WARNING_EVALUATE = """
 DEPRECATION WARNING: Method
 
@@ -383,10 +386,20 @@ class PersonalizedServer(Server):
                 "FPE_round: delta loss: %s\n num_examples: %s",
                 delta_loss,
                 delta_num_examples,
-                # delta_metrics_dict 
+                # delta_metrics_dict # Dict can't print with %s
             )
 
-        # PLOT HISTOGRAM - IMPLEMENT LATER
+        # PLOT HISTOGRAM 
+        losses_x_axis = [delta_metric.loss for client_proxy, delta_metric in delta_metrics]
+        num_examples_y_axis = [delta_metric.num_examples for client_proxy, delta_metric in delta_metrics]
+
+        plt.bar(losses_x_axis, num_examples_y_axis, align='center')
+        plt.xlabel('Delta-loss')
+        plt.ylabel('Number of samples')
+        for i in range(len(num_examples_y_axis)):
+            plt.hlines(num_examples_y_axis[i], 0, losses_x_axis[i])
+
+        plt.savefig('Delta_loss.png')
 
         # Still return the federated metrics as usual
         # Aggregate the personalized evaluation results
