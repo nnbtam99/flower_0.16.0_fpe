@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Flower - A Friendly Federated Learning Framework
 
 [![GitHub license](https://img.shields.io/github/license/adap/flower)](https://github.com/adap/flower/blob/main/LICENSE)
@@ -84,3 +85,6 @@ Please also consider adding your publication to the list of Flower-based publica
 
 We welcome contributions. Please see [CONTRIBUTING.md](CONTRIBUTING.md) to get
 started!
+=======
+Implement Federated Personalized Evaluation (FPE) by customizing `flower 0.16.0`
+>>>>>>> 39060fc2210da94fc08ecac1997d43660364317d
