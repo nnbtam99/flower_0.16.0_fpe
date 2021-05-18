@@ -16,13 +16,13 @@
 
 
 from logging import INFO
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Union
 
 from flwr.common import GRPC_MAX_MESSAGE_LENGTH
 from flwr.common.logger import log
 from flwr.server.client_manager import SimpleClientManager
 from flwr.server.grpc_server.grpc_server import start_insecure_grpc_server
-from flwr.server.server import Server
+from flwr.server.server import Server, PersonalizedServer
 from flwr.server.strategy import FedAvg, Strategy
 
 DEFAULT_SERVER_ADDRESS = "[::]:8080"
@@ -34,6 +34,8 @@ def start_server(
     config: Optional[Dict[str, int]] = None,
     strategy: Optional[Strategy] = None,
     grpc_max_message_length: int = GRPC_MAX_MESSAGE_LENGTH,
+    # add-on argument for personalized server
+    personalized: bool = False,
 ) -> None:
     """Start a Flower server using the gRPC transport layer.
 
@@ -62,7 +64,7 @@ def start_server(
     Returns:
         None.
     """
-    initialized_server, initialized_config = _init_defaults(server, config, strategy)
+    initialized_server, initialized_config = _init_defaults(server, config, strategy, personalized)
 
     # Start gRPC server
     grpc_server = start_insecure_grpc_server(
@@ -83,16 +85,21 @@ def start_server(
 
 
 def _init_defaults(
-    server: Optional[Server],
+    server: Optional[Union[Server, PersonalizedServer]],
     config: Optional[Dict[str, int]],
     strategy: Optional[Strategy],
+    personalized: bool = False,
 ) -> Tuple[Server, Dict[str, int]]:
     # Create server instance if none was given
     if server is None:
         client_manager = SimpleClientManager()
         if strategy is None:
             strategy = FedAvg()
-        server = Server(client_manager=client_manager, strategy=strategy)
+        
+        if personalized:
+            server = PersonalizedServer(client_manager=client_manager, strategy=strategy)
+        else:    
+            server = Server(client_manager=client_manager, strategy=strategy)
 
     # Set default config values
     if config is None:
@@ -103,7 +110,7 @@ def _init_defaults(
     return server, config
 
 
-def _fl(server: Server, config: Dict[str, int]) -> None:
+def _fl(server: Union[Server, PersonalizedServer], config: Dict[str, int]) -> None:
     # Fit model
     hist = server.fit(num_rounds=config["num_rounds"])
     log(INFO, "app_fit: losses_distributed %s", str(hist.losses_distributed))
@@ -115,7 +122,7 @@ def _fl(server: Server, config: Dict[str, int]) -> None:
     server.strategy.eval_fn = None  # type: ignore
 
     # Evaluate the final trained model
-    res = server.federated_personalized_evaluate_round(rnd=-1)
+    res = server.evaluate_round(rnd=-1)
     if res is not None:
         loss, _, (results, failures) = res
         log(INFO, "app_evaluate: federated loss: %s", str(loss))

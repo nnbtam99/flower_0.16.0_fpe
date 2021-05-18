@@ -399,6 +399,102 @@ class Server:
         log(INFO, "Received initial parameters from one random client")
         return parameters_res.parameters
 
+class PersonalizedServer(Server):
+    def __init__(self, 
+        client_manager: ClientManager, 
+        strategy: Optional[Strategy] = None,
+    ) -> None:
+        super().__init__()
+
+    def evaluate_round(
+        self, rnd: int
+    ) -> Optional[
+        Tuple[Optional[float], Dict[str, Scalar], FPEResultsAndFailures]
+    ]:
+
+        """Validate current global model on a number of clients, compute delta metrics and plot histogram"""
+        # Get clients and their respective instructions from strategy
+        client_instructions = self.strategy.configure_evaluate(
+            rnd=rnd, parameters=self.parameters, client_manager=self._client_manager
+        )
+
+        if not client_instructions:
+            log(INFO, "FPE_round: no clients selected, cancel")
+            return None
+        log(
+            DEBUG,
+            "FPE_round: strategy sampled %s clients (out of %s)",
+            len(client_instructions),
+            self._client_manager.num_available(),
+        )
+
+        # Collect `evaluate` results from all clients participating in this round
+        results, failures = federated_personalized_evaluate_clients(client_instructions)
+        log(
+            DEBUG,
+            "FPE_round received %s results and %s failures",
+            len(results),
+            len(failures),
+        )
+
+        # FPE IMPLEMENTATION
+        delta_metrics: List[Tuple[ClientProxy, EvaluateRes]] = []
+
+        # Extract [(client_proxy, personalized_info)] from FPE results for aggregation
+        personalized_results: List[Tuple[ClientProxy, EvaluateRes]] = []
+        for client_proxy, baseline_res, personalized_res in results:
+            personalized_results.append((client_proxy, personalized_res))
+
+            # COMPUTE DELTA METRICS = after - before = personalized - baseline
+            delta_loss = personalized_res.loss - baseline_res.loss
+            delta_num_examples = personalized_res.num_examples
+            delta_metrics_dict = {}
+
+            for k in baseline_res.metrics.keys():
+                baseline_val = baseline_res.metrics.get(k, 0)
+                personalized_val = personalized_res.metrics.get(k, 0)
+
+                if isinstance(baseline_val, float) and isinstance(personalized_val, float):
+                    delta_metrics_dict[k] = personalized_val - baseline_val
+
+            delta_metrics.append((client_proxy, EvaluateRes(
+                loss=delta_loss,
+                num_examples=delta_num_examples,
+                accuracy=0.0, # Deprecated
+                metrics=delta_metrics_dict
+            )))
+            
+            log(
+                DEBUG,
+                "FPE_round: delta loss: %s\n num_examples: %s",
+                delta_loss,
+                delta_num_examples,
+                # delta_metrics_dict # later
+            )
+
+        # PLOT HISTOGRAM - IMPLEMENT LATER
+
+        # Still return the federated metrics as usual
+        # Aggregate the personalized evaluation results
+        aggregated_result: Union[
+            Tuple[Optional[float], Dict[str, Scalar]],
+            Optional[float],  # Deprecated
+        ] = self.strategy.aggregate_evaluate(rnd, personalized_results, failures)
+
+        metrics_aggregated: Dict[str, Scalar] = {}
+        if aggregated_result is None:
+            # Backward-compatibility, this will be removed in a future update
+            log(WARNING, DEPRECATION_WARNING_EVALUATE_ROUND)
+            loss_aggregated = None
+        elif isinstance(aggregated_result, float):
+            # Backward-compatibility, this will be removed in a future update
+            log(WARNING, DEPRECATION_WARNING_EVALUATE_ROUND)
+            loss_aggregated = aggregated_result
+        else:
+            loss_aggregated, metrics_aggregated = aggregated_result
+
+        return loss_aggregated, metrics_aggregated, (personalized_results, failures)
+
 
 def shutdown(clients: List[ClientProxy]) -> ReconnectResultsAndFailures:
     """Instruct clients to disconnect and never reconnect."""
