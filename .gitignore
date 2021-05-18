@@ -1,3 +1,15 @@
+<<<<<<< HEAD
+# Flower files
+.flower_ops
+data/
+doc/source/api_documentation
+doc/source/_build
+
+# Editor
+.vscode
+
+=======
+>>>>>>> 39060fc2210da94fc08ecac1997d43660364317d
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -82,6 +94,11 @@ profile_default/
 ipython_config.py
 
 # pyenv
+<<<<<<< HEAD
+#   For a library or package, you might want to ignore these files since the code is
+#   intended to run in multiple environments; otherwise, check them in:
+=======
+>>>>>>> 39060fc2210da94fc08ecac1997d43660364317d
 .python-version
 
 # pipenv
@@ -127,3 +144,19 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+<<<<<<< HEAD
+
+# pytype static type analyzer
+.pytype/
+
+# Poetry
+poetry.lock
+*.pkl
+
+# Examples
+examples/**/dataset/**
+
+# Datasets
+baselines/datasets/leaf
+=======
+>>>>>>> 39060fc2210da94fc08ecac1997d43660364317d
