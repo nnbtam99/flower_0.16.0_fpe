@@ -393,11 +393,9 @@ class PersonalizedServer(Server):
         losses_x_axis = [delta_metric.loss for client_proxy, delta_metric in delta_metrics]
         num_examples_y_axis = [delta_metric.num_examples for client_proxy, delta_metric in delta_metrics]
 
-        plt.bar(losses_x_axis, num_examples_y_axis, align='center')
+        plt.hist(losses_x_axis)
         plt.xlabel('Delta-loss')
         plt.ylabel('Number of samples')
-        for i in range(len(num_examples_y_axis)):
-            plt.hlines(num_examples_y_axis[i], 0, losses_x_axis[i])
 
         plt.savefig('Delta_loss.png')
 
