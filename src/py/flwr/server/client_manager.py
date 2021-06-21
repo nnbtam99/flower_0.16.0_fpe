@@ -16,6 +16,7 @@
 
 
 import random
+import numpy as np
 import threading
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
@@ -57,6 +58,7 @@ class ClientManager(ABC):
         num_clients: int,
         min_num_clients: Optional[int] = None,
         criterion: Optional[Criterion] = None,
+        random_state: np.random.RandomState = None,
     ) -> List[ClientProxy]:
         """Sample a number of Flower ClientProxy instances."""
 
@@ -122,6 +124,7 @@ class SimpleClientManager(ClientManager):
         num_clients: int,
         min_num_clients: Optional[int] = None,
         criterion: Optional[Criterion] = None,
+        random_state: np.random.RandomState = None,
     ) -> List[ClientProxy]:
         """Sample a number of Flower ClientProxy instances."""
         # Block until at least num_clients are connected.
@@ -134,5 +137,8 @@ class SimpleClientManager(ClientManager):
             available_cids = [
                 cid for cid in available_cids if criterion.select(self.clients[cid])
             ]
-        sampled_cids = random.sample(available_cids, num_clients)
+        if not random_state:
+            sampled_cids = random.sample(available_cids, num_clients)
+        else:
+            sampled_cids = random_state.choice(available_cids, num_clients).tolist()
         return [self.clients[cid] for cid in sampled_cids]
