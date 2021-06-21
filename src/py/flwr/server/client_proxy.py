@@ -34,6 +34,7 @@ class ClientProxy(ABC):
 
     def __init__(self, cid: str):
         self.cid = cid
+        self.info = {}
 
     @abstractmethod
     def get_parameters(self) -> ParametersRes:
