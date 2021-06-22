@@ -137,9 +137,9 @@ class SimpleClientManager(ClientManager):
             available_cids = [
                 cid for cid in available_cids if criterion.select(self.clients[cid])
             ]
-        if not random_state:
-            available_cids = sorted(key=lambda cid: self.clients[cid].info["uid"])
-            sampled_cids = random.sample(available_cids, num_clients)
-        else:
+        if random_state:
+            available_cids = sorted(available_cids, key=lambda cid: self.clients[cid].info["uid"])
             sampled_cids = random_state.choice(available_cids, num_clients).tolist()
+        else:
+            sampled_cids = random.sample(available_cids, num_clients)
         return [self.clients[cid] for cid in sampled_cids]
