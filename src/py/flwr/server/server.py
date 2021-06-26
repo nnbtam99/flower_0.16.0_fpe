@@ -18,7 +18,7 @@
 import concurrent.futures
 import timeit
 from logging import DEBUG, INFO, WARNING
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, Iterator
 
 from flwr.common import (
     Disconnect,
@@ -201,28 +201,15 @@ class Server:
         """Validate current global model on a number of clients."""
 
         # Get clients and their respective instructions from strategy
-        client_instructions = self.strategy.configure_evaluate(
+        client_instructions_generator = self.strategy.configure_evaluate(
             rnd=rnd, parameters=self.parameters, client_manager=self._client_manager
         )
-        if not client_instructions:
+        if not client_instructions_generator:
             log(INFO, "evaluate_round: no clients selected, cancel")
             return None
-        log(
-            DEBUG,
-            "evaluate_round: strategy sampled %s clients (out of %s)",
-            len(client_instructions),
-            self._client_manager.num_available(),
-        )
 
         # Collect `evaluate` results from all clients participating in this round
-        results, failures = evaluate_clients(client_instructions)
-        log(
-            DEBUG,
-            "evaluate_round received %s results and %s failures",
-            len(results),
-            len(failures),
-        )
-
+        results, failures = evaluate_clients(client_instructions_generator)
         # Aggregate the evaluation results
         aggregated_result: Union[
             Tuple[Optional[float], Dict[str, Scalar]],
@@ -252,21 +239,15 @@ class Server:
         """Perform a single round of federated averaging."""
 
         # Get clients and their respective instructions from strategy
-        client_instructions = self.strategy.configure_fit(
+        client_instructions_generator = self.strategy.configure_fit(
             rnd=rnd, parameters=self.parameters, client_manager=self._client_manager
         )
-        if not client_instructions:
+        if not client_instructions_generator:
             log(INFO, "fit_round: no clients selected, cancel")
             return None
-        log(
-            DEBUG,
-            "fit_round: strategy sampled %s clients (out of %s)",
-            len(client_instructions),
-            self._client_manager.num_available(),
-        )
 
         # Collect `fit` results from all clients participating in this round
-        results, failures = fit_clients(client_instructions)
+        results, failures = fit_clients(client_instructions_generator)
         log(
             DEBUG,
             "fit_round received %s results and %s failures",
@@ -451,25 +432,33 @@ def reconnect_client(
 
 
 def fit_clients(
-    client_instructions: List[Tuple[ClientProxy, FitIns]]
+    client_instructions_generator: Iterator[Tuple[ClientProxy, FitIns]]
 ) -> FitResultsAndFailures:
     """Refine parameters concurrently on all selected clients."""
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = [
-            executor.submit(fit_client, c, ins) for c, ins in client_instructions
-        ]
-        concurrent.futures.wait(futures)
-    # Gather results
     results: List[Tuple[ClientProxy, FitRes]] = []
     failures: List[BaseException] = []
-    for future in futures:
-        failure = future.exception()
-        if failure is not None:
-            failures.append(failure)
-        else:
-            # Success case
-            result = future.result()
-            results.append(result)
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        num_concurrent_clients = 5
+        while True:
+            futures = []
+            for i, client_ins in enumerate(client_instructions_generator):
+                futures.append(executor.submit(fit_client, *client_ins))
+                if (i + 1) % num_concurrent_clients == 0:
+                    break
+            if not futures:
+                break
+
+            concurrent.futures.wait(futures)
+            # Gather results
+            for future in futures:
+                failure = future.exception()
+                if failure is not None:
+                    failures.append(failure)
+                else:
+                    result = future.result()
+                    results.append(result)
+
     return results, failures
 
 
@@ -480,25 +469,33 @@ def fit_client(client: ClientProxy, ins: FitIns) -> Tuple[ClientProxy, FitRes]:
 
 
 def evaluate_clients(
-    client_instructions: List[Tuple[ClientProxy, EvaluateIns]]
+    client_instructions_generator: Iterator[Tuple[ClientProxy, EvaluateIns]]
 ) -> EvaluateResultsAndFailures:
     """Evaluate parameters concurrently on all selected clients."""
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = [
-            executor.submit(evaluate_client, c, ins) for c, ins in client_instructions
-        ]
-        concurrent.futures.wait(futures)
-    # Gather results
     results: List[Tuple[ClientProxy, EvaluateRes]] = []
     failures: List[BaseException] = []
-    for future in futures:
-        failure = future.exception()
-        if failure is not None:
-            failures.append(failure)
-        else:
-            # Success case
-            result = future.result()
-            results.append(result)
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        num_concurrent_clients = 15
+        while True:
+            futures = []
+            for i, client_ins in enumerate(client_instructions_generator):
+                futures.append(executor.submit(evaluate_client, *client_ins))
+                if (i + 1) % num_concurrent_clients == 0:
+                    break
+            if not futures:
+                break
+
+            concurrent.futures.wait(futures)
+            # Gather results
+            for future in futures:
+                failure = future.exception()
+                if failure is not None:
+                    failures.append(failure)
+                else:
+                    result = future.result()
+                    results.append(result)
+
     return results, failures
 
 
