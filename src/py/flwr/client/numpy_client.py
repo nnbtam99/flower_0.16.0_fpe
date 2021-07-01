@@ -268,6 +268,8 @@ class NumPyClientWrapper(Client):
         parameters: List[np.ndarray] = parameters_to_weights(ins.parameters)
 
         results = self.numpy_client.federated_personalized_evaluate(parameters, ins.config)
+        baseline_eval_res, personalized_eval_res = None, None
+
         if len(results) == 2: # two tuples of (baseline_res, personalized_res)
             if (
                 isinstance(results[0], tuple)

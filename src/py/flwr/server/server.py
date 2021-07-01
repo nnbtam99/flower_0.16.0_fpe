@@ -363,7 +363,7 @@ class PersonalizedServer(Server):
 
         plt.figure()
         plt.hist(losses_x_axis)
-        plt.ylim((0, max(num_examples_y_axis)))
+        # plt.ylim((0, max(num_examples_y_axis)))
         plt.xlabel('Delta-loss')
         plt.ylabel('Number of samples')
         plt.savefig('Delta_loss.png')
@@ -371,7 +371,7 @@ class PersonalizedServer(Server):
         accuracy_x_axis = [delta_metric.delta_metrics_dict['acc'] for client_proxy, delta_metric in delta_metrics]
         plt.figure()
         plt.hist(accuracy_x_axis)
-        plt.ylim((0, max(num_examples_y_axis)))
+        # plt.ylim((0, max(num_examples_y_axis)))
         plt.xlabel('Delta-accuracy')
         plt.ylabel('Number of samples')
         plt.savefig('Delta_accuracy.png')
