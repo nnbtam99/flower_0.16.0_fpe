@@ -368,7 +368,7 @@ class PersonalizedServer(Server):
         plt.ylabel('Number of samples')
         plt.savefig('Delta_loss.png')
 
-        accuracy_x_axis = [delta_metric.delta_metrics_dict['acc'] for client_proxy, delta_metric in delta_metrics]
+        accuracy_x_axis = [delta_metric.metrics['acc'] for client_proxy, delta_metric in delta_metrics]
         plt.figure()
         plt.hist(accuracy_x_axis)
         # plt.ylim((0, max(num_examples_y_axis)))
