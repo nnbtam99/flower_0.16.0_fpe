@@ -312,28 +312,15 @@ class PersonalizedServer(Server):
 
         """Validate current global model on a number of clients, compute delta metrics and plot histogram"""
         # Get clients and their respective instructions from strategy
-        client_instructions = self.strategy.configure_evaluate(
+        client_instructions_generator = self.strategy.configure_evaluate(
             rnd=rnd, parameters=self.parameters, client_manager=self._client_manager
         )
-
-        if not client_instructions:
-            log(INFO, "FPE_round: no clients selected, cancel")
+        if not client_instructions_generator:
+            log(INFO, "evaluate_round: no clients selected, cancel")
             return None
-        log(
-            DEBUG,
-            "FPE_round: strategy sampled %s clients (out of %s)",
-            len(client_instructions),
-            self._client_manager.num_available(),
-        )
 
         # Collect `evaluate` results from all clients participating in this round
-        results, failures = federated_personalized_evaluate_clients(client_instructions)
-        log(
-            DEBUG,
-            "FPE_round received %s results and %s failures",
-            len(results),
-            len(failures),
-        )
+        results, failures = federated_personalized_evaluate_clients(client_instructions_generator)
 
         # FPE IMPLEMENTATION
         delta_metrics: List[Tuple[ClientProxy, EvaluateRes]] = []
@@ -374,14 +361,23 @@ class PersonalizedServer(Server):
         losses_x_axis = [delta_metric.loss for client_proxy, delta_metric in delta_metrics]
         num_examples_y_axis = [delta_metric.num_examples for client_proxy, delta_metric in delta_metrics]
 
+        plt.figure()
         plt.hist(losses_x_axis)
         plt.ylim((0, max(num_examples_y_axis)))
         plt.xlabel('Delta-loss')
         plt.ylabel('Number of samples')
-
         plt.savefig('Delta_loss.png')
 
+        accuracy_x_axis = [delta_metric.delta_metrics_dict['acc'] for client_proxy, delta_metric in delta_metrics]
+        plt.figure()
+        plt.hist(accuracy_x_axis)
+        plt.ylim((0, max(num_examples_y_axis)))
+        plt.xlabel('Delta-accuracy')
+        plt.ylabel('Number of samples')
+        plt.savefig('Delta_accuracy.png')
+
         # Still return the federated metrics as usual
+
         # Aggregate the personalized evaluation results
         aggregated_result: Union[
             Tuple[Optional[float], Dict[str, Scalar]],
@@ -509,26 +505,34 @@ def evaluate_client(
 
 # FPE IMPLEMENTATION
 def federated_personalized_evaluate_clients(
-    client_instructions: List[Tuple[ClientProxy, EvaluateIns]]
+    client_instructions_generator: Iterator[Tuple[ClientProxy, EvaluateIns]]
 ) -> FPEResultsAndFailures:
     """FPE parameters concurrently on all selected clients."""
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = [
-            executor.submit(federated_personalized_evaluate_client, c, ins) for c, ins in client_instructions
-        ]
-        concurrent.futures.wait(futures)
-    
     # Gather results
     results: List[Tuple[ClientProxy, EvaluateRes, EvaluateRes]] = []
     failures: List[BaseException] = []
-    for future in futures:
-        failure = future.exception()
-        if failure is not None:
-            failures.append(failure)
-        else:
-            # Success case
-            result = future.result()
-            results.append(result)
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        num_concurrent_clients = 15
+        while True:
+            futures = []
+            for i, client_ins in enumerate(client_instructions_generator):
+                futures.append(executor.submit(federated_personalized_evaluate_client, *client_ins))
+                if (i + 1) % num_concurrent_clients == 0:
+                    break
+            if not futures:
+                break
+
+            concurrent.futures.wait(futures)
+            # Gather results
+            for future in futures:
+                failure = future.exception()
+                if failure is not None:
+                    failures.append(failure)
+                else:
+                    result = future.result()
+                    results.append(result)
+
     return results, failures
 
 
