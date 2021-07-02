@@ -156,17 +156,6 @@ class NumPyClient(ABC):
         in a future release, please migrate to (float, int, Dict[str, Scalar]).
         """
 
-    @abstractmethod
-    def federated_personalized_evaluate(
-        self,
-        parameters: List[np.ndarray],
-        config: Dict[str, Scalar],
-    ) -> Tuple[Tuple[float, int, Dict[str, Scalar]], Tuple[float, int, Dict[str, Scalar]]]:
-        """
-        Returns: Tuple[EvalRes, EvalRes] = (baseline, personalized)
-        """
-
-
 class NumPyClientWrapper(Client):
     """Wrapper which translates between Client and NumPyClient."""
 
@@ -262,46 +251,3 @@ class NumPyClientWrapper(Client):
                 metrics=metrics,
             )
         return evaluate_res
-
-    def federated_personalized_evaluate(self, ins: EvaluateIns) -> Tuple[EvaluateRes, EvaluateRes]:
-        """Evaluate the provided parameters using the locally held dataset."""
-        parameters: List[np.ndarray] = parameters_to_weights(ins.parameters)
-
-        results = self.numpy_client.federated_personalized_evaluate(parameters, ins.config)
-        baseline_eval_res, personalized_eval_res = None, None
-
-        if len(results) == 2: # two tuples of (baseline_res, personalized_res)
-            if (
-                isinstance(results[0], tuple)
-                and isinstance(results[1], tuple)
-            ):
-                if (
-                    isinstance(results[0][0], float)
-                    and isinstance(results[0][1], int)
-                    and isinstance(results[0][2], dict)
-                    and isinstance(results[1][0], float)
-                    and isinstance(results[1][1], int)
-                    and isinstance(results[1][2], dict)
-                ):
-                    # Forward-compatible case: loss, num_examples, metrics
-                    baseline_evaluate_results = cast(Tuple[float, int, Metrics], results[0])
-                    personalized_evaluate_results = cast(Tuple[float, int, Metrics], results[1])
-
-                    baseline_loss, baseline_num_examples, baseline_metrics = baseline_evaluate_results
-                    personalized_loss, personalized_num_examples, personalized_metrics = personalized_evaluate_results
-
-                    baseline_eval_res = EvaluateRes(
-                        loss=baseline_loss,
-                        num_examples=baseline_num_examples,
-                        metrics=baseline_metrics,
-                    )
-                    personalized_eval_res = EvaluateRes(
-                        loss=personalized_loss,
-                        num_examples=personalized_num_examples,
-                        metrics=personalized_metrics,
-                    )
-            else:
-                raise Exception(
-                    "Return value expected to be of type (tuple, tuple)."
-                )
-        return baseline_eval_res, personalized_eval_res
