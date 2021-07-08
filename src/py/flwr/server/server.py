@@ -38,9 +38,6 @@ from flwr.server.client_proxy import ClientProxy
 from flwr.server.history import History
 from flwr.server.strategy import FedAvg, Strategy
 
-# Refactor later
-from matplotlib import pyplot as plt
-
 DEPRECATION_WARNING_EVALUATE = """
 DEPRECATION WARNING: Method
 
@@ -126,31 +123,21 @@ class Server:
         # Initialize parameters
         log(INFO, "Getting initial parameters")
         self.parameters = self._get_initial_parameters()
-        log(INFO, "Evaluating initial parameters")
-        res = self.strategy.evaluate(parameters=self.parameters)
-        if res is not None:
-            log(
-                INFO,
-                "initial parameters (loss, other metrics): %s, %s",
-                res[0],
-                res[1],
-            )
-            history.add_loss_centralized(rnd=0, loss=res[0])
-            history.add_metrics_centralized(rnd=0, metrics=res[1])
 
         # Run federated learning for num_rounds
         log(INFO, "FL starting")
         start_time = timeit.default_timer()
 
         for current_round in range(1, num_rounds + 1):
+            log(INFO, f"Round {current_round}")
             # Train model and replace previous global model
             res_fit = self.fit_round(rnd=current_round)
             if res_fit:
                 parameters_prime, _, _ = res_fit  # fit_metrics_aggregated
                 if parameters_prime:
                     self.parameters = parameters_prime
-
-            # Evaluate model using strategy implementation
+            """
+            # Disable centralized evaluation
             res_cen = self.strategy.evaluate(parameters=self.parameters)
             if res_cen is not None:
                 loss_cen, metrics_cen = res_cen
@@ -164,6 +151,7 @@ class Server:
                 )
                 history.add_loss_centralized(rnd=current_round, loss=loss_cen)
                 history.add_metrics_centralized(rnd=current_round, metrics=metrics_cen)
+            """
 
             # Evaluate model on a sample of available clients
             res_fed = self.evaluate_round(rnd=current_round)
@@ -174,6 +162,8 @@ class Server:
                     history.add_metrics_distributed(
                         rnd=current_round, metrics=evaluate_metrics_fed
                     )
+
+        res_fed = self.evaluate_round(rnd=0)       # final round for test
 
         # Bookkeeping
         end_time = timeit.default_timer()
@@ -273,6 +263,7 @@ class Server:
         else:
             parameters_aggregated, metrics_aggregated = aggregated_result
 
+        results = None
         return parameters_aggregated, metrics_aggregated, (results, failures)
 
     def disconnect_all_clients(self) -> None:
@@ -342,7 +333,6 @@ def fit_clients(
                     break
             if not futures:
                 break
-
             concurrent.futures.wait(futures)
             # Gather results
             for future in futures:
@@ -370,7 +360,7 @@ def evaluate_clients(
     failures: List[BaseException] = []
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        num_concurrent_clients = 15
+        num_concurrent_clients = 5
         while True:
             futures = []
             for i, client_ins in enumerate(client_instructions_generator):
